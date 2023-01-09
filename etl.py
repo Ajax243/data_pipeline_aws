@@ -5,13 +5,13 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, col
 import  pyspark.sql.functions as F
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
-
+from pyspark.sql.types import IntegerType, TimestampType
 
 config = configparser.ConfigParser()
-config.read('dl.cfg')
+# config.read('dl.cfg')
 
-os.environ['AWS_ACCESS_KEY_ID']=config['AWS_ACCESS_KEY_ID']
-os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS_SECRET_ACCESS_KEY']
+# os.environ['AWS_ACCESS_KEY_ID']=config['AWS_ACCESS_KEY_ID']
+# os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS_SECRET_ACCESS_KEY']
 
 
 def create_spark_session():
@@ -33,13 +33,13 @@ def process_song_data(spark, input_data, output_data):
     songs_table = df.select(['song_id','title','artist_id','year','duration'])
     
     # write songs table to parquet files partitioned by year and artist
-    songs_table.write(parquet(os.path.join(output_data,'songs'),partitionBy=['year','artist_id']))
+    songs_table.write.parquet(os.path.join(output_data,'songs'),partitionBy=['year','artist_id'])
 
     # extract columns to create artists table
     artists_table = df.select(['artist_id','artist_name','artist_location','artist_lattitude','artist_longitude'])
     
     # write artists table to parquet files
-    artists_table.write(parquet(os.path.join(output_data,'artists')))
+    artists_table.write.parquet(os.path.join(output_data,'artists'))
 
 
 def process_log_data(spark, input_data, output_data):
@@ -57,15 +57,15 @@ def process_log_data(spark, input_data, output_data):
     users_table = df.selectExpr(['userId','firstName','lastName','gender','level'])
     
     # write users table to parquet files
-    userss_table.write(parquet(os.path.join(output_data,'users')))
+    users_table.write.parquet(os.path.join(output_data,'users'))
 
     # create timestamp column from original timestamp column
     get_timestamp = udf()
     df = df.withColumn('timestamp',F.to_timestamp('ts'))
     
     # create datetime column from original timestamp column
-    get_datetime = udf()
-    # df = 
+    get_timestamp = F.udf(lambda ts: datetime.fromtimestamp(ts/1000).isoformat())
+    df = df.withColumn('timestamp', get_timestamp('ts').cast(TimestampType()))
     
     # extract columns to create time table
     time_table = df.select('timestamp')
