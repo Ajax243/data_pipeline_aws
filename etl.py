@@ -99,8 +99,8 @@ def process_log_data(spark, input_data, output_data):
         l.sessionId,
         l.location,
         l.userAgent,
-        year(l.start_time) as year,
-        month(l.start_time) as month
+        year(l.timestamp) as year,
+        month(l.timestamp) as month
     FROM logs l
     LEFT JOIN songs s 
     ON  l.song=s.title AND
