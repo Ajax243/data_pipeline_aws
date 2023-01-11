@@ -19,9 +19,18 @@ The resulting data is organized into a star schema with a central fact table 'so
 
 ## How to run it:
 
-1- Edit the AWS credentials in the config file.
+1- Uncomment the AWS credentials and add it in the config file  
+
+ OR
+
+ keep it uncommented and ignore the credentials if you plan to run the script from an EMR cluster
 
 2- Create an S3 bucket and replace the output_data variable in the main() function with s3a://<bucket name>/.
 
 
-3- Run the script file : $ python etl.py
+3- To run the script locally run : $ python etl.py
+
+OR 
+
+To run it from an EMR cluster, copy the etl.py to the EMR cluster using the pscp package 
+and run : /usr/bin/spark-submit etl.py

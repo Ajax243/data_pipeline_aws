@@ -8,7 +8,7 @@ from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, dat
 from pyspark.sql.types import IntegerType, TimestampType
 
 config = configparser.ConfigParser()
-# config.read('dl.cfg')
+config.read('dl.cfg')
 
 # os.environ['AWS_ACCESS_KEY_ID']=config['AWS_ACCESS_KEY_ID']
 # os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS_SECRET_ACCESS_KEY']
@@ -17,7 +17,7 @@ config = configparser.ConfigParser()
 def create_spark_session():
     spark = SparkSession \
         .builder \
-        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.0") \
+        .config("spark.jars.packages", "")\
         .getOrCreate()
     return spark
 
@@ -36,7 +36,7 @@ def process_song_data(spark, input_data, output_data):
     songs_table.write.parquet(os.path.join(output_data,'songs'),partitionBy=['year','artist_id'])
 
     # extract columns to create artists table
-    artists_table = df.select(['artist_id','artist_name','artist_location','artist_lattitude','artist_longitude'])
+    artists_table = df.select(['artist_id','artist_name','artist_location','artist_latitude','artist_longitude'])
     
     # write artists table to parquet files
     artists_table.write.parquet(os.path.join(output_data,'artists'))
@@ -83,6 +83,11 @@ def process_log_data(spark, input_data, output_data):
     song_df = spark.read.json(os.path.join(input_data,'song_data','*','*','*'))
 
     # extract columns from joined song and log datasets to create songplays table 
+    df = df.orderBy('ts')
+    df = df.withColumn('songplay_id', F.monotonically_increasing_id())
+    song_df.createOrReplaceTempView('songs')
+    df.createOrReplaceTempView('logs')
+
     songplays_table = spark.sql("""
     SELECT 
         l.songplay_id,
@@ -93,12 +98,12 @@ def process_log_data(spark, input_data, output_data):
         s.artist_id,
         l.sessionId,
         l.location,
-        l.userAgent
+        l.userAgent,
         year(l.start_time) as year,
-        month(e.start_time) as month
-    FROM df l
-    LEFT JOIN song_df s ON
-        l.song=s.title AND
+        month(l.start_time) as month
+    FROM logs l
+    LEFT JOIN songs s 
+    ON  l.song=s.title AND
         l.artist=s.artist_name
     """)
 
@@ -109,7 +114,8 @@ def process_log_data(spark, input_data, output_data):
 def main():
     spark = create_spark_session()
     input_data = "s3a://udacity-dend/"
-    output_data = "aws-dat-pipeline-bucket"
+    output_data = 's3a://output-for-dl/'
+
     
     process_song_data(spark, input_data, output_data)    
     process_log_data(spark, input_data, output_data)
